@@ -1,0 +1,117 @@
+--SELECT * FROM @TABLES
+
+DECLARE @QUERIES TABLE ( QUERY VARCHAR(MAX) )
+DECLARE @TABLE_NAME VARCHAR(50) = 'Uye'
+
+--DECLARE @TABLE_NAME VARCHAR(50) = 'Uye'
+DECLARE @TDATA_TYPES TABLE ( N TINYINT, COLUMN_NAME VARCHAR(MAX), DATA_TYPE VARCHAR(MAX) )
+
+
+INSERT INTO @TDATA_TYPES (N, COLUMN_NAME, DATA_TYPE)
+SELECT 
+  ROW_NUMBER() OVER( ORDER BY COLUMN_NAME)[N]
+  ,COLUMN_NAME
+ ,DATA_TYPE
+FROM [v_get_column_names]
+    WHERE TABLE_NAME = @TABLE_NAME
+
+--SELECT * FROM @TDATA_TYPES
+
+DECLARE @I INT = 1
+DECLARE @MAX INT = (SELECT MAX(N) FROM @TDATA_TYPES)
+
+
+--DECLARE @TABLE_NAME VARCHAR(50) = 'Uye'
+--DECLARE @PFIX VARCHAR(50) = 'Sil'
+--SELECT @PFIX
+
+--DECLARE @DEFINITION VARCHAR(MAX) = CHAR(13) + '--' + CHAR(13) + 'GO' + CHAR(13) +  
+--    'CREATE PROCEDURE ' + @TABLE_NAME + @PFIX + CHAR(13) + 
+--    '  AS' + CHAR(13)
+
+--SELECT @DEFINITION
+
+DECLARE @TEMP_COL       VARCHAR(50)
+DECLARE @TEMP_TYPE      VARCHAR(50)
+
+DECLARE @VARIABLE_DEFS  VARCHAR(MAX) = '  @ID           BIGINT,' + CHAR(13)
+DECLARE @COLUMNS        VARCHAR(MAX) = '(' + CHAR(13)
+DECLARE @VALUES         VARCHAR(MAX) = '(' + CHAR(13)
+DECLARE @UPDATE_VARS    VARCHAR(MAX) = ''
+
+--DECLARE @INSERT         VARCHAR(MAX) = 'INSERT INTO ' + @TABLE_NAME + '('
+--DECLARE @UPDATE         VARCHAR(MAX) = 'UPDATE ' + @TABLE_NAME
+--SELECT * FROM @TDATA_TYPES 
+
+
+WHILE ( @I < @MAX) 
+BEGIN
+    SET @TEMP_COL = (SELECT COLUMN_NAME FROM @TDATA_TYPES WHERE N = @I)
+    SET @TEMP_TYPE = (SELECT DATA_TYPE FROM @TDATA_TYPES WHERE N = @I)
+
+    IF NOT ( @TEMP_COL = @TABLE_NAME + 'ID' OR @TEMP_COL = 'Silindi' )
+        BEGIN
+
+            SET @VARIABLE_DEFS += '    @' + @TEMP_COL + ' ' + @TEMP_TYPE + ',' + CHAR(13)
+            SET @COLUMNS +='    ' + @TEMP_COL + ', ' + CHAR(13)
+            SET @VALUES += '    @' + @TEMP_COL + ',' + CHAR(13)
+            SET @UPDATE_VARS += '    ' + @TEMP_COL + ' = @' + @TEMP_COL + ',' + CHAR(13)
+
+            --SELECT @VARIABLE_DEFS += '@' + COLUMN_NAME + ' ' + DATA_TYPE + ',' + CHAR(13)
+            --    FROM @TDATA_TYPES
+            --    WHERE N = @I
+            
+            --SELECT @COLUMNS += COLUMN_NAME + ', ' + CHAR(13)
+            --    FROM @TDATA_TYPES
+            --    WHERE N = @I
+
+            --SELECT @VALUES += '@' + COLUMN_NAME + ',' + CHAR(13)
+            --    FROM @TDATA_TYPES
+            --    WHERE N = @I
+
+        END
+
+    --SELECT * FROM @TDATA_TYPES WHERE N = @I
+    SET @I += 1
+END
+
+SELECT @VARIABLE_DEFS += '    @' + COLUMN_NAME + ' ' + DATA_TYPE + CHAR(13) + CHAR(13)   
+    FROM @TDATA_TYPES 
+    WHERE N = @MAX
+
+SELECT @COLUMNS += COLUMN_NAME +  CHAR(13) + ')' + CHAR(13)   
+    FROM @TDATA_TYPES 
+    WHERE N = @MAX
+
+SELECT @VALUES += '    @' + COLUMN_NAME +   CHAR(13) + ')' + CHAR(13)   
+    FROM @TDATA_TYPES 
+    WHERE N = @MAX
+
+SELECT @UPDATE_VARS += COLUMN_NAME  + ' = @'+ COLUMN_NAME    
+    FROM @TDATA_TYPES 
+    WHERE N = @MAX
+
+
+--SELECT @VARIABLE_DEFS   [VARIABLE DEFS]
+--SELECT @COLUMNS         [COLUMNS]
+--SELECT @VALUES          [VALUES]
+
+--SELECT '  @' + COLUMN_NAME + ' ' + DATA_TYPE + ',' [COLUMN_NAME] 
+--    FROM [v_get_column_names]
+--    WHERE TABLE_NAME = 'Uye'
+
+
+--SELECT dbo.CreateProcedureDefinition('Uye', 'Kayit') [Code]
+
+
+INSERT INTO @QUERIES (QUERY)
+    SELECT dbo.CreateInsertProcedure('Uye', @VARIABLE_DEFS, @COLUMNS, @VALUES)[QUERY]
+
+INSERT INTO @QUERIES (QUERY)
+SELECT dbo.CreateUpdateProcedure('Uye', @VARIABLE_DEFS, @UPDATE_VARS)
+
+
+INSERT INTO @QUERIES (QUERY)
+    SELECT dbo.CreateDeleteProcedure('Uye')
+
+SELECT * FROM @QUERIES
