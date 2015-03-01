@@ -1,5 +1,8 @@
+IF ( OBJECT_ID( 'CreateAllProceduresForTable') IS NOT NULL )
+    BEGIN DROP PROCEDURE CreateAllProceduresForTable END
 GO
-ALTER PROCEDURE CreateAllProceduresForTable
+
+CREATE PROCEDURE CreateAllProceduresForTable
 
      @TABLE_NAME VARCHAR(50) --= 'Uye'
     ,@INCLUDE_DELETE     BIT    = 0
@@ -27,7 +30,7 @@ AS
       ROW_NUMBER() OVER( ORDER BY COLUMN_NAME)[N]
       ,COLUMN_NAME
      ,DATA_TYPE
-    FROM [v_get_column_names]
+    FROM [DB_DATA_TYPES]
         WHERE TABLE_NAME = @TABLE_NAME
 
     --SELECT * FROM @TDATA_TYPES
@@ -112,30 +115,39 @@ AS
     --SELECT @VALUES          [VALUES]
 
     --SELECT '  @' + COLUMN_NAME + ' ' + DATA_TYPE + ',' [COLUMN_NAME] 
-    --    FROM [v_get_column_names]
+    --    FROM [DB_DATA_TYPES]
     --    WHERE TABLE_NAME = 'Uye'
 
 
     --SELECT dbo.CreateProcedureDefinition('Uye', 'Kayit') [Code]
 
+    IF ( @INCLUDE_DELETE = 1)  
+        BEGIN  
+            INSERT INTO @QUERIES_DELETE (QUERY)
+                SELECT dbo.CreateDeleteProcedure(@TABLE_NAME)
+            INSERT INTO @QUERIES  SELECT * FROM @QUERIES_DELETE 
+        END
 
-    INSERT INTO @QUERIES_INSERT (QUERY)
-        SELECT dbo.CreateInsertProcedure(@TABLE_NAME, @VARIABLE_DEFS, @COLUMNS, @VALUES)[QUERY]
+    IF ( @INCLUDE_INSERT = 1)  
+        BEGIN  
+            INSERT INTO @QUERIES_INSERT (QUERY)
+                SELECT dbo.CreateInsertProcedure(@TABLE_NAME, @VARIABLE_DEFS, @COLUMNS, @VALUES)[QUERY]
+            INSERT INTO @QUERIES  SELECT * FROM @QUERIES_INSERT 
+        END
 
-    INSERT INTO @QUERIES_UPDATE (QUERY)
-    SELECT dbo.CreateUpdateProcedure(@TABLE_NAME, @VARIABLE_DEFS, @UPDATE_VARS)
+    IF ( @INCLUDE_TRIGGER = 1)  
+        BEGIN  
+        INSERT INTO @QUERIES_TRIGGER (QUERY)
+            SELECT dbo.CreateDeleteTrigger(@TABLE_NAME)
+            INSERT INTO @QUERIES  SELECT * FROM @QUERIES_TRIGGER 
+        END
 
-
-    INSERT INTO @QUERIES_DELETE (QUERY)
-        SELECT dbo.CreateDeleteProcedure(@TABLE_NAME)
-
-    INSERT INTO @QUERIES_TRIGGER (QUERY)
-        SELECT dbo.CreateDeleteTrigger(@TABLE_NAME)
-
-    IF ( @INCLUDE_DELETE = 1)  BEGIN  INSERT INTO @QUERIES  SELECT * FROM @QUERIES_DELETE END
-    IF ( @INCLUDE_INSERT = 1)  BEGIN  INSERT INTO @QUERIES  SELECT * FROM @QUERIES_INSERT END
-    IF ( @INCLUDE_TRIGGER = 1)  BEGIN  INSERT INTO @QUERIES  SELECT * FROM @QUERIES_TRIGGER END
-    IF ( @INCLUDE_UPDATE = 1)  BEGIN  INSERT INTO @QUERIES  SELECT * FROM @QUERIES_UPDATE END
+    IF ( @INCLUDE_UPDATE = 1)  
+        BEGIN
+            INSERT INTO @QUERIES_UPDATE (QUERY)
+                SELECT dbo.CreateUpdateProcedure(@TABLE_NAME, @VARIABLE_DEFS, @UPDATE_VARS)         
+            INSERT INTO @QUERIES  SELECT * FROM @QUERIES_UPDATE 
+        END
 
     --@INCLUDE_DELETE     BIT    = 0
     --@INCLUDE_INSERT     BIT    = 0
@@ -145,11 +157,10 @@ AS
     SELECT * FROM @QUERIES
 
 
-go
-
+GO
 DECLARE @FOO TABLE (QUERY VARCHAR(MAX))
 
 INSERT INTO @FOO 
-exec CreateAllProceduresForTable 'FilmIndex',1,1,1,1
+EXEC CreateAllProceduresForTable 'FilmIndex',1,1,1,1
 
 SELECT * FROM @FOO

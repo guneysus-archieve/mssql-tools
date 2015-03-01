@@ -1,5 +1,5 @@
 GO
-CREATE VIEW my_sys_functions_equivalent
+CREATE VIEW DB_GET_FUNCTIONS
 /* from http://stackoverflow.com/a/468780/1766716 
     
    OR
@@ -16,5 +16,5 @@ FROM sys.objects
 WHERE type IN ('FN', 'IF', 'TF') 
 
 GO
-select * from my_sys_functions_equivalent
+select * from DB_GET_FUNCTIONS
 
