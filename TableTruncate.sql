@@ -2,6 +2,7 @@
 -- Author:	Eduardo Cuomo
 -- Create date:	19/01/2015
 -- Description:	Truncate Table.
+-- repo	      : https://github.com/reduardo7/TableTruncate
 -- =============================================
 CREATE PROCEDURE [dbo].[TableTruncate]
 	@TableName NVARCHAR(128)
@@ -18,7 +19,6 @@ DECLARE @Sql NVARCHAR(MAX) = 'DELETE FROM [' + @TableName + ']'
 EXECUTE sp_executesql @Sql
 
 IF (@@ERROR = 0) BEGIN
-	-- Si NO hay error
 	DBCC CHECKIDENT (@TableName, RESEED, @NextId)
 	
 	COMMIT TRAN
